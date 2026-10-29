@@ -12,10 +12,8 @@ if errorlevel 1 (
 python -m pip install -r requirements.txt
 
 echo.
-echo 1^) Открой SSMS ^(SQL Server Management Studio^)
-echo 2^) Подключись к своему серверу
-echo 3^) Открой VPNDB.sql и нажми Execute ^(F5^)
-echo 4^) Если сайт не видит БД — в db.py поправь SERVER=...
+echo SQL Server: выполни VPNDB.sql в SSMS (F5), в db.py поправь SERVER=...
+echo Без сервера сайт сам переключится на SQLite (vpn.db).
 echo.
 echo STEPVPN: http://127.0.0.1:5002
 echo Стоп: Ctrl+C

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Фильтр серверов — STEPVPN{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">TVF · fn_FilterServers</div>
+      <h1>Фильтрация серверов</h1>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('db_page') }}">← К базе</a>
+  </div>
+
+  <p class="lead">
+    Два параметра: <strong>страна</strong> и <strong>online/offline</strong>.
+    Сайт вызывает <code>SELECT * FROM dbo.fn_FilterServers(@Country, @IsOnline)</code>.
+  </p>
+
+  <form class="card form-card" method="post" style="margin:1rem 0; max-width:520px">
+    <div class="field">
+      <label for="country">Параметр 1 — Country</label>
+      <select id="country" name="country" style="padding:0.65rem 0.8rem;border-radius:12px;border:1px solid var(--line);background:var(--snow)">
+        {% for c in countries %}
+        <option value="{{ c }}" {% if c == country %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="online">Параметр 2 — IsOnline</label>
+      <select id="online" name="online" style="padding:0.65rem 0.8rem;border-radius:12px;border:1px solid var(--line);background:var(--snow)">
+        <option value="1" {% if is_online == 1 %}selected{% endif %}>1 — online</option>
+        <option value="0" {% if is_online == 0 %}selected{% endif %}>0 — offline</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Применить фильтр</button>
+  </form>
+
+  {% if error %}
+  <div class="flash-error">{{ error }}</div>
+  {% endif %}
+
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>{% for c in cols %}<th>{{ c }}</th>{% else %}<th>Результат</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>{% for v in row %}<td>{{ v if v is not none else '' }}</td>{% endfor %}</tr>
+        {% else %}
+        <tr><td class="muted" colspan="20">Нет строк (или выбери параметры и нажми «Применить»)</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -9,11 +9,16 @@
       <h1>База данных</h1>
     </div>
     <div class="hero-cta">
+      <a class="btn btn-ghost" href="{{ url_for('filter_page') }}">Фильтр (TVF)</a>
+      <a class="btn btn-ghost" href="{{ url_for('algorithms_page') }}">Алгоритмы</a>
       <a class="btn btn-ghost" href="{{ url_for('reports') }}">Отчёты</a>
       <a class="btn btn-ghost" href="{{ url_for('index') }}">На главную</a>
     </div>
   </div>
-  <p class="lead">Данные из SQL Server (VPNDB). После оплаты сюда пишутся клиент, устройство, подписка и ключ.</p>
+  <p class="lead">
+    SQL Server · VPNDB. Интерфейс к таблицам: просмотр, поиск, добавление, удаление.
+    Журнал клиентов заполняет триггер (время не в Users).
+  </p>
   <div class="grid-auto" style="margin-top:1rem">
     {% for t in tables %}
     <a class="card card-compact" href="{{ url_for('view_table', key=t.key) }}">

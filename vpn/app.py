@@ -1,4 +1,8 @@
-# STEPVPN: сайт + SQL Server (база VPNDB из VPNDB.sql)
+# =============================================================================
+# app.py — Flask-сайт STEPVPN
+# Маршруты: главная, заказ, кабинет БД, фильтр (TVF), алгоритмы, отчёты.
+# Данные пишет/читает через db.py → SQL Server или SQLite.
+# =============================================================================
 import re
 import secrets
 import uuid
@@ -7,10 +11,12 @@ from datetime import date, timedelta
 from flask import Flask, request, redirect, render_template, url_for, session
 from db import fetch_all, execute, execute_insert
 
+# Приложение Flask и ключ сессии (черновик заказа в cookie-сессии)
 app = Flask(__name__)
 app.secret_key = "stepvpn-exam-secret"
 
-# Таблицы для кабинета БД
+# Описание таблиц для кабинета /db и /t/<key>
+# Кортеж: url-ключ, заголовок, SELECT, имя таблицы SQL, PK, подписи колонок, поле поиска
 TABLES = [
     (
         "plans", "Тарифы",
@@ -28,6 +34,13 @@ TABLES = [
         "SELECT UserId, Email, FullName, IsActive FROM Users",
         "Users", "UserId",
         {"UserId": "ID", "Email": "Email", "FullName": "ФИО", "IsActive": "Активен"},
+        "FullName",
+    ),
+    (
+        "user_log", "Журнал клиентов (триггер)",
+        "SELECT LogId, UserId, FullName, AddedAt FROM UserAuditLog",
+        "UserAuditLog", "LogId",
+        {"LogId": "ID лога", "UserId": "ID клиента", "FullName": "ФИО", "AddedAt": "Время добавления"},
         "FullName",
     ),
     (
@@ -79,7 +92,7 @@ TABLES = [
     ),
 ]
 
-# Отчёты JOIN для защиты
+# SQL-отчёты (JOIN / агрегаты) для страницы /reports
 REPORTS = [
     (
         "Активные подписки",
@@ -123,14 +136,17 @@ REPORTS = [
 
 
 def get_table(key):
+    """Найти описание таблицы по ключу URL (/t/users → users)."""
     return next((x for x in TABLES if x[0] == key), None)
 
 
 def as_dicts(cols, rows):
+    """Превратить результат SQL в список словарей."""
     return [dict(zip(cols, r)) for r in rows]
 
 
 def get_plan(plan_id):
+    """Прочитать один тариф из Plans."""
     cols, rows = fetch_all(
         "SELECT PlanId, Name, NameJp, Price, DurationDays, TrafficLimitGb, MaxDevices, IsTrial FROM Plans WHERE PlanId = ?",
         (plan_id,),
@@ -138,8 +154,8 @@ def get_plan(plan_id):
     return dict(zip(cols, rows[0])) if rows else None
 
 
-# Ключ для импорта в клиент
 def make_stepvpn_key(server_name: str, city: str) -> str:
+    """Сгенерировать строку ключа подписки (формат vless://…)."""
     uid = str(uuid.uuid4())
     tag = secrets.token_hex(3)
     host = f"{city.lower()}.stepvpn.net".replace(" ", "")
@@ -154,6 +170,7 @@ def make_stepvpn_key(server_name: str, city: str) -> str:
 
 @app.route("/order/<int:plan_id>", methods=["GET", "POST"])
 def order_start(plan_id):
+    """Шаг 1: форма клиента и устройства, черновик в session."""
     plan = get_plan(plan_id)
     if not plan:
         return render_template(
@@ -188,6 +205,7 @@ def order_start(plan_id):
 
 @app.route("/order/<int:plan_id>/pay", methods=["GET", "POST"])
 def order_pay(plan_id):
+    """Шаг 2: демо-оплата → INSERT Users/Devices/Subscriptions/AccessKeys."""
     plan = get_plan(plan_id)
     draft = session.get("order_draft")
     if not plan or not draft or draft.get("plan_id") != plan_id:
@@ -206,6 +224,7 @@ def order_pay(plan_id):
                 error="Проверь данные карты (демо)",
             )
 
+        # Клиент: найти по email или создать (триггер пишет UserAuditLog)
         _, existing = fetch_all("SELECT UserId FROM Users WHERE Email = ?", (draft["email"],))
         if existing:
             user_id = existing[0][0]
@@ -231,6 +250,7 @@ def order_pay(plan_id):
             (user_id, plan_id, start.isoformat(), end.isoformat()),
         )
 
+        # Ближайший online-сервер + ключ
         scols, srows = fetch_all(
             "SELECT TOP 1 ServerId, Name, City FROM Servers WHERE IsOnline = 1 ORDER BY PingMs"
         )
@@ -263,16 +283,18 @@ def order_pay(plan_id):
 
 @app.route("/order/success")
 def order_success():
+    """Шаг 3: показать ключ и ID новых строк в БД."""
     result = session.get("order_result")
     if not result:
         return redirect(url_for("index"))
     return render_template("order_success.html", **result)
 
 
-# --- Сайт ---
+# --- Публичные страницы ---
 
 @app.route("/")
 def index():
+    """Главная: тарифы из таблицы Plans."""
     plans = as_dicts(*fetch_all(
         "SELECT PlanId, Name, NameJp, Price, DurationDays, TrafficLimitGb, MaxDevices, IsTrial FROM Plans ORDER BY DurationDays, PlanId"
     ))
@@ -282,11 +304,12 @@ def index():
     return render_template("index.html", plans=plans)
 
 
-# --- Кабинет БД ---
+# --- Кабинет БД (интерфейс вывода данных) ---
 
 @app.route("/admin")
 @app.route("/db")
 def db_page():
+    """Список таблиц со счётчиками строк."""
     tables = []
     for key, title, *_ in TABLES:
         name = get_table(key)[3]
@@ -297,6 +320,7 @@ def db_page():
 
 @app.route("/reports")
 def reports():
+    """Готовые JOIN/GROUP BY отчёты."""
     items = []
     for title, sql in REPORTS:
         try:
@@ -307,8 +331,46 @@ def reports():
     return render_template("reports.html", reports=items)
 
 
+@app.route("/filter", methods=["GET", "POST"])
+def filter_page():
+    """Фильтрация серверов через TVF fn_FilterServers(@Country, @IsOnline)."""
+    countries = [r[0] for r in fetch_all("SELECT DISTINCT Country FROM Servers ORDER BY Country")[1]]
+    country = (request.form.get("country") or request.args.get("country") or (countries[0] if countries else "")).strip()
+    online_raw = request.form.get("online")
+    if online_raw is None:
+        online_raw = request.args.get("online", "1")
+    is_online = 1 if str(online_raw) in ("1", "true", "on", "yes") else 0
+
+    cols, rows, error = [], [], None
+    if country:
+        try:
+            cols, rows = fetch_all(
+                "SELECT * FROM dbo.fn_FilterServers(?, ?)",
+                (country, is_online),
+            )
+        except Exception as e:
+            error = str(e)
+
+    return render_template(
+        "filter.html",
+        countries=countries,
+        country=country,
+        is_online=is_online,
+        cols=cols,
+        rows=rows,
+        error=error,
+    )
+
+
+@app.route("/algorithms")
+def algorithms_page():
+    """Тексты алгоритмов заполнения и фильтрации для защиты."""
+    return render_template("algorithms.html")
+
+
 @app.route("/t/<key>")
 def view_table(key):
+    """Просмотр одной таблицы + поиск."""
     t = get_table(key)
     if not t:
         return render_template(
@@ -333,6 +395,7 @@ def view_table(key):
 
 @app.route("/del/<key>/<int:row_id>")
 def delete(key, row_id):
+    """Удалить строку по первичному ключу."""
     t = get_table(key)
     if not t or not t[4]:
         return render_template(
@@ -350,6 +413,7 @@ def delete(key, row_id):
 
 @app.route("/add/<key>", methods=["GET", "POST"])
 def add(key):
+    """Добавить строку вручную через форму."""
     t = get_table(key)
     if not t or not t[4]:
         return render_template(
@@ -381,5 +445,6 @@ def add(key):
     )
 
 
+# Запуск: python app.py → http://127.0.0.1:5002
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002, debug=True)
