@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Ошибка — STEPVPN{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Ошибка</div>
+    <h1>{{ title or 'Что-то пошло не так' }}</h1>
+  </div>
+</div>
+<div class="flash-error">{{ message }}</div>
+<a class="btn btn-ghost" href="{{ back or url_for('index') }}">Назад</a>
+{% endblock %}

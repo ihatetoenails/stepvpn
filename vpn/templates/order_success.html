@@ -1,0 +1,56 @@
+﻿{% extends "base.html" %}
+{% block title %}Ключ подписки для STEPVPN{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Готово · доступ оформлен</div>
+      <h1>Добавьте подписку в STEPVPN</h1>
+    </div>
+  </div>
+
+  <div class="steps">
+    <span class="step-chip">1. Регистрация</span>
+    <span class="step-chip">2. Оплата</span>
+    <span class="step-chip on">3. Импорт в STEPVPN</span>
+  </div>
+
+  <div class="layout-2">
+    <div class="card">
+      <h3>{{ user_name }}, доступ «{{ plan_name }}» активен</h3>
+      <p>{{ user_email }} · сервер {{ server_name }} ({{ city }})</p>
+      <p style="margin-top:0.7rem">Скопируйте ключ целиком и вставьте в STEPVPN из буфера обмена.</p>
+      <div class="key-box" id="sub-key">{{ stepvpn_key }}</div>
+      <div class="card-actions">
+        <button class="button button-primary" type="button"
+          onclick="navigator.clipboard.writeText(document.getElementById('sub-key').innerText)">Скопировать ключ</button>
+        <a class="button button-light" href="{{ url_for('index') }}#devices">Скачать клиент</a>
+        <a class="text-link" href="{{ url_for('index') }}">На главную →</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Записано в базу данных</h3>
+      <p>Новые строки уже в SQL Server (<code>VPNDB</code>). Открой таблицу — запись сверху и подсвечена.</p>
+      <div class="db-inserts">
+        <a class="db-row" href="{{ url_for('view_table', key='users', hl=user_id) }}">
+          <span>Users</span><strong>#{{ user_id }}</strong><em>{{ user_name }}</em>
+        </a>
+        <a class="db-row" href="{{ url_for('view_table', key='devices', hl=device_id) }}">
+          <span>Devices</span><strong>#{{ device_id }}</strong><em>{{ device_name }} · {{ platform }}</em>
+        </a>
+        <a class="db-row" href="{{ url_for('view_table', key='subscriptions', hl=subscription_id) }}">
+          <span>Subscriptions</span><strong>#{{ subscription_id }}</strong><em>{{ plan_name }}</em>
+        </a>
+        <a class="db-row" href="{{ url_for('view_table', key='keys', hl=key_id) }}">
+          <span>AccessKeys</span><strong>#{{ key_id }}</strong><em>ключ STEPVPN</em>
+        </a>
+      </div>
+      <div class="card-actions">
+        <a class="btn btn-primary btn-sm" href="{{ url_for('db_page') }}">Открыть базу</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

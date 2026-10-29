@@ -1,0 +1,35 @@
+﻿{% extends "base.html" %}
+{% block title %}Отчёты — STEPVPN{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">SQL</div>
+      <h1>Отчёты</h1>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('db_page') }}">← К базе</a>
+  </div>
+  {% for r in reports %}
+  <section class="report">
+    <h3>{{ r.title }}</h3>
+    {% if r.error %}
+    <div class="flash-error">{{ r.error }}</div>
+    {% else %}
+    <div class="panel">
+      <table>
+        <thead><tr>{% for c in r.cols %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for row in r.rows %}
+          <tr>{% for v in row %}<td>{{ v if v is not none else '' }}</td>{% endfor %}</tr>
+          {% else %}
+          <tr><td class="muted" colspan="20">Нет данных</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

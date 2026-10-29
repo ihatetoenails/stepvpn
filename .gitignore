@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+.env.*
+.venv/
+venv/
+*.db
+.vscode/
+.DS_Store
+_classmate/
+*.7z

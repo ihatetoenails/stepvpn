@@ -1,0 +1,50 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ title }} — STEPVPN{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Таблица</div>
+      <h1>{{ title }}</h1>
+    </div>
+    <div class="hero-cta">
+      <a class="btn btn-ghost" href="{{ url_for('db_page') }}">← К базе</a>
+      {% if pk %}<a class="btn btn-primary" href="{{ url_for('add', key=key) }}">+ Добавить</a>{% endif %}
+    </div>
+  </div>
+  {% if search_field %}
+  <form class="toolbar search" method="get">
+    <input name="q" value="{{ search }}" placeholder="Поиск…">
+    <button class="btn btn-primary" type="submit">Найти</button>
+  </form>
+  {% endif %}
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          {% for c in cols %}<th>{{ labels.get(c, c) }}</th>{% endfor %}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{% if highlight and row[0] == highlight %}row-hl{% endif %}">
+          {% for v in row %}
+          <td>{% if v is string and v.startswith('vless://') %}<span class="mono">{{ v[:40] }}…</span>{% else %}{{ v if v is not none else '' }}{% endif %}</td>
+          {% endfor %}
+          <td>
+            {% if pk %}
+            <a class="btn btn-danger" href="{{ url_for('delete', key=key, row_id=row[0]) }}"
+               onclick="return confirm('Удалить?')">Удалить</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="20" class="muted">Пусто</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

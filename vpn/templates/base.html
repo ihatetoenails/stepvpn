@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+<html lang="ru" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#15161b">
+  <title>{% block title %}Доступ для STEPVPN: оформление и подключение{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app-extra.css') }}">
+</head>
+<body class="{% block body_class %}page-home{% endblock %}">
+  <a class="skip-link" href="#main">К содержанию</a>
+  <header class="site-header" data-header>
+    <div class="shell header-row">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="STEPVPN: главная">
+        <span>STEPVPN</span>
+      </a>
+      <nav class="header-nav">
+        <a class="header-link" href="{{ url_for('db_page') }}">База</a>
+        <a class="button button-small header-cta" href="{{ url_for('index') }}#plans">Оформить</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

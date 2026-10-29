@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Оплата — {{ plan.Name }}{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Шаг 2 · оплата (формально)</div>
+      <h1>Инициализация платежа</h1>
+    </div>
+  </div>
+
+  <div class="steps">
+    <span class="step-chip">1. Регистрация</span>
+    <span class="step-chip on">2. Оплата</span>
+    <span class="step-chip">3. Ключ STEPVPN</span>
+  </div>
+
+  {% if error %}<div class="flash-error">{{ error }}</div>{% endif %}
+
+  <div class="panel form-card">
+    <p class="pay-note">
+      Клиент: <strong>{{ draft.full_name }}</strong> ({{ draft.email }})<br>
+      Тариф: <strong>{{ plan.Name }}</strong> —
+      {% if plan.Price == 0 %}0 ₽ (Trial, списание не требуется){% else %}{{ plan.Price | int }} ₽{% endif %}
+    </p>
+    <form method="post">
+      <div class="field">
+        <label for="card">Номер карты</label>
+        <input id="card" name="card" required placeholder="2200 0000 0000 0000" value="{{ values.get('card', '') }}">
+      </div>
+      <div class="field">
+        <label for="exp">Срок</label>
+        <input id="exp" name="exp" required placeholder="12/28" value="{{ values.get('exp', '') }}">
+      </div>
+      <div class="field">
+        <label for="cvc">CVC</label>
+        <input id="cvc" name="cvc" required placeholder="123" value="{{ values.get('cvc', '') }}">
+      </div>
+      <p class="pay-note">Это учебная форма: данные никуда не отправляются. После «Оплатить» в БД появятся User / Device / Subscription / AccessKey.</p>
+      <div class="form-actions">
+        <button class="button button-primary" type="submit">{% if plan.Price == 0 %}Подтвердить Trial{% else %}Оплатить {{ plan.Price | int }} ₽{% endif %}</button>
+        <a class="button button-light" href="{{ url_for('order_start', plan_id=plan.PlanId) }}">Назад</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

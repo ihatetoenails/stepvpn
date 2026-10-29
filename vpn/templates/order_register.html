@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — {{ plan.Name }}{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Шаг 1 · регистрация</div>
+      <h1>Оформление «{{ plan.Name }}»</h1>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('index') }}#plans">← К тарифам</a>
+  </div>
+
+  <div class="steps">
+    <span class="step-chip on">1. Регистрация</span>
+    <span class="step-chip">2. Оплата</span>
+    <span class="step-chip">3. Ключ STEPVPN</span>
+  </div>
+
+  {% if error %}<div class="flash-error">{{ error }}</div>{% endif %}
+
+  <div class="layout-2" style="max-width:920px">
+  <div class="panel form-card">
+    <p class="pay-note">
+      {% if plan.NameJp %}<span class="jp">{{ plan.NameJp }}</span> · {% endif %}
+      {% if plan.Price == 0 %}0 ₽{% else %}{{ plan.Price | int }} ₽{% endif %}
+      / {{ plan.DurationDays }} дн. · {{ plan.TrafficLimitGb }} ГБ · до {{ plan.MaxDevices }} устр.
+    </p>
+    <form method="post">
+      <div class="field">
+        <label for="full_name">Имя</label>
+        <input id="full_name" name="full_name" required value="{{ values.get('full_name', '') }}" placeholder="Кенджи Сато">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required value="{{ values.get('email', '') }}" placeholder="you@mail.ru">
+      </div>
+      <div class="field">
+        <label for="platform">Устройство для STEPVPN</label>
+        <input id="platform" name="platform" list="platforms" required value="{{ values.get('platform', 'Android') }}" placeholder="Android">
+        <datalist id="platforms">
+          <option value="Android">
+          <option value="iOS">
+          <option value="Windows">
+          <option value="macOS">
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="device_name">Название устройства</label>
+        <input id="device_name" name="device_name" required value="{{ values.get('device_name', '') }}" placeholder="Pixel / iPhone">
+      </div>
+      <div class="form-actions">
+        <button class="button button-primary" type="submit">Далее к оплате</button>
+        <a class="button button-light" href="{{ url_for('index') }}#plans">Отмена</a>
+      </div>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Что будет в БД</h3>
+    <div class="meta">
+      <span>1. Users — новый клиент</span>
+      <span>2. Devices — твоё устройство</span>
+      <span>3. Subscriptions — после оплаты</span>
+      <span>4. AccessKeys — ключ STEPVPN</span>
+    </div>
+  </div>
+  </div>
+</div>
+{% endblock %}

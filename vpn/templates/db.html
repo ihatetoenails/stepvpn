@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}База данных — STEPVPN{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">SQL Server · VPNDB</div>
+      <h1>База данных</h1>
+    </div>
+    <div class="hero-cta">
+      <a class="btn btn-ghost" href="{{ url_for('reports') }}">Отчёты</a>
+      <a class="btn btn-ghost" href="{{ url_for('index') }}">На главную</a>
+    </div>
+  </div>
+  <p class="lead">Данные из SQL Server (VPNDB). После оплаты сюда пишутся клиент, устройство, подписка и ключ.</p>
+  <div class="grid-auto" style="margin-top:1rem">
+    {% for t in tables %}
+    <a class="card card-compact" href="{{ url_for('view_table', key=t.key) }}">
+      <div class="card-top">
+        <h3>{{ t.title }}</h3>
+        <span class="count-badge">{{ t.count }}</span>
+      </div>
+      <p><code>{{ t.sql_name }}</code></p>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

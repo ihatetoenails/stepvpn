@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Добавить — {{ title }}{% endblock %}
+{% block content %}
+<div class="page-pad">
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Новая запись</div>
+    <h1>{{ title }}</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('view_table', key=key) }}">← Назад</a>
+</div>
+{% if error %}<div class="flash-error">{{ error }}</div>{% endif %}
+<div class="panel form-card">
+  <form method="post">
+    {% for c in insert_cols %}
+    <div class="field">
+      <label for="{{ c }}">{{ labels.get(c, c) }}</label>
+      <input id="{{ c }}" name="{{ c }}" value="{{ values.get(c, '') }}">
+    </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Сохранить</button>
+      <a class="btn btn-ghost" href="{{ url_for('view_table', key=key) }}">Отмена</a>
+    </div>
+  </form>
+</div>
+</div>
+{% endblock %}
+

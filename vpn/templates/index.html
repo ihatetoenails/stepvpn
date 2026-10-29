@@ -1,0 +1,96 @@
+﻿{% extends "base.html" %}
+{% block content %}
+
+<section class="hero hero-home">
+  <div class="shell hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">Доступ и установка STEPVPN</p>
+      <h1>Оформление доступа для STEPVPN</h1>
+      <p class="hero-lead">Выберите тариф, пройдите регистрацию и оплату — данные сразу попадут в базу VPNDB.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="#plans">Оформить подписку</a>
+        <a class="button button-secondary" href="{{ url_for('order_start', plan_id=plans[0].PlanId) }}">Пробный период 3 дня</a>
+      </div>
+      <p class="hero-note"><span></span>Один доступ — максимум на 10 устройств.</p>
+    </div>
+  </div>
+</section>
+
+<section class="content-section section-prices" id="plans">
+  <div class="shell section-frame">
+    <div class="section-heading">
+      <h2>Выберите период</h2>
+      <p>Тарифы читаются из таблицы Plans в SQL Server.</p>
+    </div>
+    <div class="price-grid">
+      {% for p in plans %}
+      <a class="price-card" href="{{ url_for('order_start', plan_id=p.PlanId) }}">
+        {% if loop.last %}<span class="price-badge">выгоднее всего</span>{% endif %}
+        <span class="price-period">
+          {% if p.DurationDays <= 3 %}3 дня
+          {% elif p.DurationDays <= 31 %}1 месяц
+          {% elif p.DurationDays <= 200 %}6 месяцев
+          {% else %}1 год{% endif %}
+        </span>
+        <span class="price-sum">{{ p.PriceLabel }} ₽</span>
+        <span class="price-note">до {{ p.MaxDevices }} устр. · {{ p.TrafficLimitGb }} ГБ</span>
+        <span class="price-action">Выбрать <span aria-hidden="true">↗</span></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="content-section section-steps" id="start">
+  <div class="shell section-frame">
+    <div class="section-heading">
+      <h2>Как работает заказ</h2>
+      <p>После оплаты в БД появляются 4 новые записи.</p>
+    </div>
+    <ol class="step-list">
+      <li>
+        <div class="step">
+          <span class="step-marker" data-step="1" aria-hidden="true"></span>
+          <div>
+            <h3>Регистрация</h3>
+            <p>Имя, email, устройство — уходит в черновик заказа.</p>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step">
+          <span class="step-marker" data-step="2" aria-hidden="true"></span>
+          <div>
+            <h3>Оплата (демо)</h3>
+            <p>Карта формальная. После Submit идут INSERT в SQL Server.</p>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="step">
+          <span class="step-marker" data-step="3" aria-hidden="true"></span>
+          <div>
+            <h3>Ключ STEPVPN</h3>
+            <p>Users + Devices + Subscriptions + AccessKeys — смотри в кабинете «База».</p>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="bottom-cta">
+  <div class="shell bottom-cta-grid">
+    <div>
+      <p class="eyebrow">База данных</p>
+      <h2>Таблицы и отчёты SQL</h2>
+      <p>Просмотр VPNDB, поиск, добавление и JOIN-отчёты.</p>
+    </div>
+    <div class="bottom-cta-actions">
+      <a class="button button-light" href="{{ url_for('db_page') }}">Открыть базу</a>
+      <a class="text-link" href="{{ url_for('reports') }}">Отчёты →</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
