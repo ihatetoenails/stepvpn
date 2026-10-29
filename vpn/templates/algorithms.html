@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Алгоритмы — STEPVPN{% endblock %}
+{% block body_class %}{% endblock %}
+{% block content %}
+<div class="page-pad">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Экзамен · SQL</div>
+      <h1>Алгоритмы</h1>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('db_page') }}">← К базе</a>
+  </div>
+
+  <section class="card" style="margin-bottom:1rem">
+    <h3>1. Алгоритм заполнения БД</h3>
+    <ol class="lead" style="margin:0.6rem 0 0; padding-left:1.2rem; display:grid; gap:0.35rem">
+      <li><code>INSERT Plans</code> — тарифы (нет FK).</li>
+      <li><code>INSERT Users</code> — клиенты; <strong>триггер</strong> пишет в <code>UserAuditLog</code> (id, имя, время).</li>
+      <li><code>INSERT Devices</code> — устройства (нужен UserId).</li>
+      <li><code>INSERT Subscriptions</code> — подписки (UserId + PlanId).</li>
+      <li><code>INSERT Servers</code> — локации.</li>
+      <li><code>INSERT AccessKeys</code> — ключи (User + Server + Device).</li>
+      <li><code>INSERT Sessions</code> — сессии (нужен KeyId).</li>
+    </ol>
+    <p class="lead" style="margin-top:0.8rem">
+      На сайте после оплаты шаги 2–4 и 6 выполняются автоматически для нового клиента.
+      Полный скрипт: <code>VPNDB.sql</code> в SSMS (F5).
+    </p>
+  </section>
+
+  <section class="card" style="margin-bottom:1rem">
+    <h3>2. Алгоритм фильтрации</h3>
+    <ol class="lead" style="margin:0.6rem 0 0; padding-left:1.2rem; display:grid; gap:0.35rem">
+      <li>Задать два параметра: <code>@Country</code> (NVARCHAR) и <code>@IsOnline</code> (BIT).</li>
+      <li>Вызвать табличную функцию <code>dbo.fn_FilterServers</code>.</li>
+      <li>Функция возвращает строки <code>Servers</code>, где оба условия истинны.</li>
+      <li>Результат показать в интерфейсе (<a href="{{ url_for('filter_page') }}">/filter</a>) или в SSMS.</li>
+    </ol>
+    <pre style="margin-top:0.8rem;padding:0.9rem;background:var(--snow);border-radius:12px;overflow:auto;font-size:0.85rem">SELECT * FROM dbo.fn_FilterServers(N'Япония', 1);</pre>
+  </section>
+
+  <section class="card">
+    <h3>3. Триггер журнала</h3>
+    <p class="lead" style="margin:0.5rem 0 0">
+      В <code>Users</code> времени нет. Триггер <code>trg_Users_AfterInsert</code> после INSERT
+      сохраняет <code>UserId</code>, <code>FullName</code>, <code>AddedAt</code> в <code>UserAuditLog</code>.
+      Смотри таблицу «Журнал клиентов» в кабинете базы.
+    </p>
+  </section>
+</div>
+{% endblock %}

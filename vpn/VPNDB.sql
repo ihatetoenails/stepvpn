@@ -1,4 +1,10 @@
-/* STEPVPN — учебная БД (7 таблиц) для SQL Server */
+/* STEPVPN — учебная БД (Microsoft SQL Server / SSMS)
+   Критерии:
+   - табличная функция с 2 параметрами
+   - алгоритм заполнения БД
+   - алгоритм фильтрации
+   - триггер журнала пользователей (время НЕ в Users)
+*/
 
 USE master;
 GO
@@ -17,17 +23,22 @@ USE VPNDB;
 GO
 
 /*
+  Схема:
   Users → Subscriptions → Plans
   Users → Devices
   Users → AccessKeys → Servers → Sessions
+  Users → (триггер) → UserAuditLog
+
   Status подписки: 1=активна, 2=истекла, 3=отменена
 */
+
+/* ---------- 1. ТАБЛИЦЫ ---------- */
 
 /* Тарифы */
 CREATE TABLE Plans (
     PlanId          INT IDENTITY(1,1) PRIMARY KEY,
     Name            NVARCHAR(100) NOT NULL,
-    NameJp          NVARCHAR(100) NULL,   -- подпись срока («1 месяц»), не обязательно японский
+    NameJp          NVARCHAR(100) NULL,   -- подпись срока («1 месяц»)
     Price           DECIMAL(18,2) NOT NULL CHECK (Price >= 0),
     DurationDays    INT NOT NULL CHECK (DurationDays > 0),
     TrafficLimitGb  INT NOT NULL CHECK (TrafficLimitGb > 0),
@@ -36,13 +47,21 @@ CREATE TABLE Plans (
 );
 GO
 
-/* Клиенты */
+/* Клиенты — время регистрации здесь НЕ хранится (требование экзамена) */
 CREATE TABLE Users (
     UserId          INT IDENTITY(1,1) PRIMARY KEY,
     Email           NVARCHAR(150) NOT NULL UNIQUE,
     FullName        NVARCHAR(150) NOT NULL,
-    RegisteredAt    DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     IsActive        BIT NOT NULL DEFAULT 1
+);
+GO
+
+/* Журнал: id, имя и время добавления пользователя (пишет триггер) */
+CREATE TABLE UserAuditLog (
+    LogId           INT IDENTITY(1,1) PRIMARY KEY,
+    UserId          INT NOT NULL,
+    FullName        NVARCHAR(150) NOT NULL,
+    AddedAt         DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 GO
 
@@ -112,6 +131,69 @@ CREATE TABLE Sessions (
 );
 GO
 
+/* ---------- 2. ТРИГГЕР ---------- */
+/*
+  После INSERT в Users сохраняет UserId, FullName и время в UserAuditLog.
+  В таблице Users поля времени нет.
+*/
+CREATE TRIGGER trg_Users_AfterInsert
+ON Users
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO UserAuditLog (UserId, FullName, AddedAt)
+    SELECT i.UserId, i.FullName, SYSUTCDATETIME()
+    FROM inserted AS i;
+END
+GO
+
+/* ---------- 3. ТАБЛИЧНАЯ ФУНКЦИЯ (2 параметра) ---------- */
+/*
+  fn_FilterServers(@Country, @IsOnline)
+  Возвращает серверы, отфильтрованные по стране И по статусу online/offline.
+  Пример: SELECT * FROM dbo.fn_FilterServers(N'Япония', 1);
+*/
+CREATE FUNCTION dbo.fn_FilterServers
+(
+    @Country  NVARCHAR(100),
+    @IsOnline BIT
+)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT
+        ServerId,
+        Name,
+        Country,
+        City,
+        FlagEmoji,
+        IpAddress,
+        PingMs,
+        LoadPercent,
+        IsOnline
+    FROM Servers
+    WHERE Country = @Country
+      AND IsOnline = @IsOnline
+);
+GO
+
+/* ---------- 4. АЛГОРИТМ ЗАПОЛНЕНИЯ БД ---------- */
+/*
+  Алгоритм заполнения (порядок важен из‑за FK):
+
+  Шаг 1. INSERT Plans          — справочник тарифов (нет зависимостей)
+  Шаг 2. INSERT Users          — клиенты; триггер сразу пишет UserAuditLog
+  Шаг 3. INSERT Devices        — устройства (нужен UserId)
+  Шаг 4. INSERT Subscriptions  — подписки (нужны UserId + PlanId)
+  Шаг 5. INSERT Servers        — локации (нет зависимостей от клиентов)
+  Шаг 6. INSERT AccessKeys     — ключи (UserId + ServerId + DeviceId)
+  Шаг 7. INSERT Sessions       — сессии (нужен KeyId)
+
+  Сайт Flask после оплаты повторяет шаги 2–4 и 6 для нового заказа.
+*/
+
 /* Данные: тарифы */
 INSERT INTO Plans (Name, NameJp, Price, DurationDays, TrafficLimitGb, MaxDevices, IsTrial) VALUES
 (N'Trial', N'3 дня',       19.00,    3,  50,  1, 1),
@@ -120,7 +202,7 @@ INSERT INTO Plans (Name, NameJp, Price, DurationDays, TrafficLimitGb, MaxDevices
 (N'Year',  N'1 год',     2790.00,  365, 999, 10, 0);
 GO
 
-/* Данные: клиенты */
+/* Данные: клиенты (триггер заполнит UserAuditLog) */
 INSERT INTO Users (Email, FullName, IsActive) VALUES
 (N'kenji@mail.ru',   N'Кенджи Сато',   1),
 (N'yuki@mail.ru',    N'Юки Танака',    1),
@@ -189,8 +271,26 @@ INSERT INTO Sessions (KeyId, StartedAt, EndedAt, TrafficMb) VALUES
 (7, '2026-10-24 09:00:00', '2026-10-24 09:45:00', 180);
 GO
 
+/* ---------- 5. АЛГОРИТМ ФИЛЬТРАЦИИ ---------- */
+/*
+  Алгоритм фильтрации серверов:
+
+  1. Пользователь задаёт два параметра: Country (страна) и IsOnline (0/1).
+  2. Вызывается табличная функция:
+       SELECT * FROM dbo.fn_FilterServers(@Country, @IsOnline);
+  3. Функция читает Servers и оставляет строки, где
+       Country = @Country AND IsOnline = @IsOnline.
+  4. Результат — таблица (можно JOIN дальше или показать на сайте /filter).
+
+  Проверка в SSMS:
+*/
+SELECT * FROM dbo.fn_FilterServers(N'Япония', 1);
+GO
+
+/* Контрольные COUNT */
 SELECT 'Plans' AS Таблица, COUNT(*) AS Записей FROM Plans
 UNION ALL SELECT 'Users', COUNT(*) FROM Users
+UNION ALL SELECT 'UserAuditLog', COUNT(*) FROM UserAuditLog
 UNION ALL SELECT 'Devices', COUNT(*) FROM Devices
 UNION ALL SELECT 'Subscriptions', COUNT(*) FROM Subscriptions
 UNION ALL SELECT 'Servers', COUNT(*) FROM Servers
